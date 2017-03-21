@@ -50,5 +50,9 @@
       <ColNames>token_value</ColNames>
       <Unique>1</Unique>
     </index>
+    <index id="17" parent="5" name="book_id">
+      <ColNames>book_id</ColNames>
+      <Unique>1</Unique>
+    </index>
   </database-model>
 </dataSource>

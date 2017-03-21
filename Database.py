@@ -4,6 +4,8 @@ from nltk import FreqDist
 import nltk
 import typing
 import StopWords
+import functools
+import math
 
 
 class DatabaseItem:
@@ -71,13 +73,69 @@ class DatabaseItem:
         self.c.execute('SELECT * FROM books')
         all_books = self.c.fetchall()
         all_books = list(filter(lambda x: x[-1] > 0, all_books))
+        all_token_occur = []
+        for token in tokens:
+            self.c.execute('SELECT count(*) FROM tokens WHERE token_value=?', (token,))
+            all_token_occur.append(self.c.fetchone()[0])
         for index, book in enumerate(all_books):
             freq = 0.0
-            for token in tokens:
+            for index2, token in enumerate(tokens):
                 self.c.execute('SELECT count(*) FROM tokens WHERE book_id=? AND token_value=?', (book[0], token))
-                token_occurrence = self.c.fetchone()[0]
-                freq += token_occurrence / book[-1]
+                token_book_occurrence = self.c.fetchone()[0]
+                if token_book_occurrence > 0:
+                    token_all_occurrence = all_token_occur[index2]
+                    freq += (token_book_occurrence / book[-1]) / token_all_occurrence
             all_books[index] = (book + (freq,))
             # book += (freq,)
         all_books.sort(key=lambda tup: tup[-1], reverse=True)
-        print(all_books[:10])
+        list(map(print, all_books[:10]))
+        # print(all_books[:10])
+
+    def query3(self, query_text: str):
+        tokens = list(self.handle_tokens(query_text))
+        self.c.execute('SELECT * FROM books')
+        all_books = self.c.fetchall()
+        all_books = list(filter(lambda x: x[-1] > 0, all_books))
+        all_token_occur = []
+        for token in tokens:
+            self.c.execute('SELECT count(*) FROM tokens WHERE token_value=?', (token,))
+            all_token_occur.append(self.c.fetchone()[0])
+        for index, book in enumerate(all_books):
+            freq = 0.0
+            self.c.execute('SELECT token_value FROM tokens WHERE book_id=?', (book[0],))
+            tokens_in_the_book = self.c.fetchall()
+            tokens_in_the_book = list(map(lambda x: x[0], tokens_in_the_book))
+            for index2, token in enumerate(tokens):
+                token_book_occurrence = tokens_in_the_book.count(token)
+                if token_book_occurrence > 0:
+                    token_all_occurrence = all_token_occur[index2]
+                    freq += math.log(1 + token_book_occurrence / book[-1]) / token_all_occurrence
+            all_books[index] = (book + (freq,))
+            # book += (freq,)
+        all_books.sort(key=lambda tup: tup[-1], reverse=True)
+        list(map(print, all_books[:10]))
+        # print(all_books[:10])
+
+    def query4(self, query_text: str):
+        tokens = list(self.handle_tokens(query_text))
+        self.c.execute('SELECT * FROM books')
+        all_books = self.c.fetchall()
+        all_books = list(filter(lambda x: x[-1] > 0, all_books))
+
+        self.c.execute('SELECT * FROM tokens')
+        all_tokens = self.c.fetchall()
+        bare_tokens = list(map(lambda x: x[0], all_tokens))
+        all_token_occur = list(map(lambda x: bare_tokens.count(x), tokens))
+
+        for index, book in enumerate(all_books):
+            freq = 0.0
+            tokens_in_the_book = list(map(lambda x: x[0], filter(lambda x: x[2] == book[0], all_tokens)))
+            for index2, token in enumerate(tokens):
+                token_book_occurrence = tokens_in_the_book.count(token)
+                if token_book_occurrence > 0:
+                    token_all_occurrence = all_token_occur[index2]
+                    freq += (token_book_occurrence / book[-1]) / token_all_occurrence
+            all_books[index] = (book + (freq,))
+        # book += (freq,)
+        all_books.sort(key=lambda tup: tup[-1], reverse=True)
+        list(map(print, all_books[:10]))
