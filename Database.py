@@ -2,6 +2,7 @@ import sqlite3
 from nltk.stem.porter import PorterStemmer
 from nltk import FreqDist
 import nltk
+import typing
 import StopWords
 
 
@@ -41,6 +42,13 @@ class DatabaseItem:
             self.c.execute('UPDATE books SET count=? WHERE id=?', (book_count[0], item[0]))
             self.conn.commit()
 
+    @staticmethod
+    def handle_tokens(query_text: str) -> typing.Iterable:
+        tokens = nltk.word_tokenize(query_text)
+        tokens = filter(lambda x: x not in StopWords.stop_words, tokens)
+        tokens = map(PorterStemmer().stem, tokens)
+        return tokens
+
     def query(self, query_text: str):
         tokens = nltk.word_tokenize(query_text)
         tokens = filter(lambda x: x not in StopWords.stop_words, tokens)
@@ -57,3 +65,19 @@ class DatabaseItem:
             self.c.execute('SELECT title,url FROM books WHERE id=?', (int(book[0]),))
             print(self.c.fetchone())
             # print(result_list)
+
+    def query2(self, query_text: str):
+        tokens = list(self.handle_tokens(query_text))
+        self.c.execute('SELECT * FROM books')
+        all_books = self.c.fetchall()
+        all_books = list(filter(lambda x: x[-1] > 0, all_books))
+        for index, book in enumerate(all_books):
+            freq = 0.0
+            for token in tokens:
+                self.c.execute('SELECT count(*) FROM tokens WHERE book_id=? AND token_value=?', (book[0], token))
+                token_occurrence = self.c.fetchone()[0]
+                freq += token_occurrence / book[-1]
+            all_books[index] = (book + (freq,))
+            # book += (freq,)
+        all_books.sort(key=lambda tup: tup[-1], reverse=True)
+        print(all_books[:10])

@@ -2,4 +2,4 @@ import Database
 
 database = Database.DatabaseItem()
 #database.change2()
-database.query("works computer science")
+database.query2("works computer science")
