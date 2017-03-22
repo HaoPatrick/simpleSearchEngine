@@ -2,7 +2,9 @@ import sqlite3
 from nltk.stem.porter import PorterStemmer
 from nltk import FreqDist
 import nltk
-import typing
+# import typing
+# import cython
+import data_utl
 import StopWords
 import functools
 import math
@@ -44,8 +46,14 @@ class DatabaseItem:
             self.c.execute('UPDATE books SET count=? WHERE id=?', (book_count[0], item[0]))
             self.conn.commit()
 
+    def change3(self):
+        self.c.execute('SELECT DISTINCT * FROM tokens GROUP BY book_id')
+        all_result = self.c.fetchall()
+        for item in all_result:
+            self.c.execute('SELECT * FROM tokens WHERE token_value=?', (item[0]))
+
     @staticmethod
-    def handle_tokens(query_text: str) -> typing.Iterable:
+    def handle_tokens(query_text: str):
         tokens = nltk.word_tokenize(query_text)
         tokens = filter(lambda x: x not in StopWords.stop_words, tokens)
         tokens = map(PorterStemmer().stem, tokens)
@@ -139,3 +147,18 @@ class DatabaseItem:
         # book += (freq,)
         all_books.sort(key=lambda tup: tup[-1], reverse=True)
         list(map(print, all_books[:10]))
+
+    def query5(self, query_text: str):
+        tokens = list(self.handle_tokens(query_text))
+        self.c.execute('SELECT * FROM books')
+        all_books = self.c.fetchall()
+        all_books = list(filter(lambda x: x[-1] > 0, all_books))
+        all_token_occur = []
+        for token in tokens:
+            self.c.execute('SELECT book_id FROM tokens WHERE token_value=?',
+                           (token,))
+            all_token_occur.append(data_utl.handle_from_database(self.c.fetchall()))
+        data_utl.handle_books(all_books, all_token_occur)
+        all_books.sort(key=lambda tup: tup[-1], reverse=True)
+        list(map(print, all_books[:10]))
+        # print(all_books[:10])
