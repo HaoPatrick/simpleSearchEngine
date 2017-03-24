@@ -1,4 +1,6 @@
-def handle_books(all_books: list, all_token_occur: list):
+cimport cython
+
+def handle_books(list all_books, list all_token_occur):
     for index, book in enumerate(all_books):
         freq = 0.0
         _book_id = book[0]
@@ -9,8 +11,7 @@ def handle_books(all_books: list, all_token_occur: list):
             tokens_in_the_book = sum(x == _book_id for x in token)
             freq += tokens_in_the_book / book[-1] / len(token)
         all_books[index] = (book + (freq,))
-        # book += (freq,)
-    return all_books
+    return all_books.sort(key=lambda x: x[-1], reverse=True)
 
-def handle_from_database(in_list: list):
+def handle_from_database(list in_list):
     return list(map(lambda x: int(x[0]), in_list))

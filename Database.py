@@ -159,6 +159,6 @@ class DatabaseItem:
                            (token,))
             all_token_occur.append(data_utl.handle_from_database(self.c.fetchall()))
         data_utl.handle_books(all_books, all_token_occur)
-        all_books.sort(key=lambda tup: tup[-1], reverse=True)
+        # all_books.sort(key=lambda tup: tup[-1], reverse=True)
         list(map(print, all_books[:10]))
         # print(all_books[:10])
